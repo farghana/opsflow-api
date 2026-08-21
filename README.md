@@ -1,73 +1,59 @@
-# OpsFlow API
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-OpsFlow is a multi-tenant SaaS operations platform for service businesses. This repository contains the Laravel REST API powering authentication, organization tenancy, clients, work orders, permissions, reporting, billing workflows, files, background jobs, and AI-assisted intake.
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-## Backend stack
+## About Laravel
 
-- Laravel 12
-- PHP 8.4
-- PostgreSQL
-- Laravel Sanctum
-- Spatie Laravel Permission
-- Pest
-- Laravel Queues
-- Laravel Filesystem
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-## Architecture goals
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-The API is intentionally structured to demonstrate production SaaS engineering patterns:
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-- row-level organization tenancy
-- policy-based authorization
-- database-backed roles and permissions
-- thin controllers
-- Form Requests for validation
-- API Resources for response formatting
-- Actions / Services for business logic
-- enums for workflow state
-- queued work for long-running tasks
-- audit-friendly activity history
-- AI provider abstraction instead of coupling business logic directly to one model vendor
+## Learning Laravel
 
-## Initial domain
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
 
-### Organizations
-Every tenant-owned record belongs to an organization.
+If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-### Clients
-Service-business customers and contact information.
+## Laravel Sponsors
 
-### Work Orders
-The core workflow entity, including status, priority, assignment, due dates, estimates, completion state, comments, attachments, and activity history.
+We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
 
-### Permissions
-Initial roles:
+### Premium Partners
 
-- Owner
-- Manager
-- Technician
-- Billing
+- **[Vehikl](https://vehikl.com)**
+- **[Tighten Co.](https://tighten.co)**
+- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
+- **[64 Robots](https://64robots.com)**
+- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
+- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
+- **[Redberry](https://redberry.international/laravel-development)**
+- **[Active Logic](https://activelogic.com)**
 
-### AI intake
-A user can submit unstructured intake notes and receive a proposed structured work order. AI output is reviewed by a human before any work order is persisted.
+## Contributing
 
-## Planned API areas
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-- `/api/health`
-- authentication / current user
-- clients
-- work orders
-- comments
-- attachments
-- dashboard metrics
-- reports / exports
-- invoices
-- AI extraction
+## Code of Conduct
 
-## Related repository
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-Frontend: [`opsflow-web`](https://github.com/farghana/opsflow-web)
+## Security Vulnerabilities
 
-## Status
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-Early development. The first milestone is API bootstrap, Sanctum authentication, organization tenancy, permissions, clients, and the work-order domain.
+## License
+
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
