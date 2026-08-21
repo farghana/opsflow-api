@@ -23,15 +23,17 @@ class ClientController extends Controller
             : 'name';
         $direction = $request->string('direction')->lower()->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = min(max($request->integer('per_page', 15), 1), 100);
-        $search = trim($request->string('search')->toString());
+        $search = strtolower(trim($request->string('search')->toString()));
 
         $clients = $organization->clients()
             ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'ilike', "%{$search}%")
-                        ->orWhere('company_name', 'ilike', "%{$search}%")
-                        ->orWhere('email', 'ilike', "%{$search}%")
-                        ->orWhere('phone', 'ilike', "%{$search}%");
+                $term = "%{$search}%";
+
+                $query->where(function ($query) use ($term) {
+                    $query->whereRaw('LOWER(name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(company_name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(email) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(phone) LIKE ?', [$term]);
                 });
             })
             ->orderBy($sort, $direction)
