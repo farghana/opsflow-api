@@ -23,4 +23,9 @@ class Organization extends Model
     {
         return $this->hasMany(Client::class);
     }
+
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
 }
