@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\WorkOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->orderBy('name')
             ->get();
     });
+
+    Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
 
     Route::apiResource('clients', ClientController::class);
     Route::apiResource('work-orders', WorkOrderController::class);
