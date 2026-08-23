@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\WorkOrderController;
+use App\Http\Controllers\Api\WorkOrderIntakeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
+    Route::post('/work-order-intake/parse', WorkOrderIntakeController::class);
 
     Route::apiResource('clients', ClientController::class);
     Route::apiResource('work-orders', WorkOrderController::class);
