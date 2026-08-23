@@ -23,9 +23,9 @@ return [
         ],
     ],
 
-    'openai' => [
-        'key' => env('OPENAI_API_KEY'),
-        'model' => env('OPENAI_MODEL', 'gpt-5.6-luna'),
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
     ],
 
 ];
