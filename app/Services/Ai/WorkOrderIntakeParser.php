@@ -30,7 +30,7 @@ class WorkOrderIntakeParser
             ->acceptJson()
             ->timeout(30)
             ->post('https://api.anthropic.com/v1/messages', [
-                'model' => config('services.anthropic.model', 'claude-sonnet-5'),
+                'model' => config('services.anthropic.model', 'claude-sonnet-4-6'),
                 'max_tokens' => 1200,
                 'system' => $this->systemPrompt($clients->toArray(), $teamMembers->toArray()),
                 'messages' => [
