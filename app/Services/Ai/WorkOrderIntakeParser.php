@@ -10,7 +10,7 @@ class WorkOrderIntakeParser
 {
     public function parse(string $text, Organization $organization): array
     {
-        $apiKey = config('services.openai.key');
+        $apiKey = config('services.anthropic.key');
         abort_if(blank($apiKey), 503, 'AI intake is not configured.');
 
         $clients = $organization->clients()
@@ -23,43 +23,37 @@ class WorkOrderIntakeParser
             ->orderBy('name')
             ->get();
 
-        $response = Http::withToken($apiKey)
+        $response = Http::withHeaders([
+                'x-api-key' => $apiKey,
+                'anthropic-version' => '2023-06-01',
+            ])
             ->acceptJson()
             ->timeout(30)
-            ->post('https://api.openai.com/v1/responses', [
-                'model' => config('services.openai.model', 'gpt-5.6-luna'),
-                'input' => [
-                    [
-                        'role' => 'system',
-                        'content' => [[
-                            'type' => 'input_text',
-                            'text' => $this->systemPrompt($clients->toArray(), $teamMembers->toArray()),
-                        ]],
-                    ],
+            ->post('https://api.anthropic.com/v1/messages', [
+                'model' => config('services.anthropic.model', 'claude-sonnet-5'),
+                'max_tokens' => 1200,
+                'system' => $this->systemPrompt($clients->toArray(), $teamMembers->toArray()),
+                'messages' => [
                     [
                         'role' => 'user',
-                        'content' => [[
-                            'type' => 'input_text',
-                            'text' => $text,
-                        ]],
+                        'content' => $text,
                     ],
                 ],
-                'text' => [
+                'output_config' => [
                     'format' => [
                         'type' => 'json_schema',
-                        'name' => 'work_order_intake',
-                        'strict' => true,
                         'schema' => $this->schema(),
                     ],
                 ],
             ]);
 
         if ($response->failed()) {
-            report(new RuntimeException('OpenAI intake request failed: '.$response->body()));
+            report(new RuntimeException('Anthropic intake request failed: '.$response->body()));
             abort(502, 'AI intake is temporarily unavailable.');
         }
 
-        $outputText = data_get($response->json(), 'output.0.content.0.text');
+        $content = collect($response->json('content', []))->firstWhere('type', 'text');
+        $outputText = is_array($content) ? ($content['text'] ?? null) : null;
         $parsed = is_string($outputText) ? json_decode($outputText, true) : null;
 
         if (! is_array($parsed)) {
@@ -99,7 +93,7 @@ class WorkOrderIntakeParser
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'status' => ['type' => 'string', 'enum' => ['draft', 'queued', 'in_progress', 'blocked', 'completed', 'cancelled']],
                 'due_date' => ['type' => ['string', 'null']],
-                'confidence' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1],
+                'confidence' => ['type' => 'number'],
                 'warnings' => [
                     'type' => 'array',
                     'items' => ['type' => 'string'],
@@ -128,6 +122,7 @@ class WorkOrderIntakeParser
             $warnings->push('The suggested assignee could not be matched to this organization.');
         }
 
+        $parsed['confidence'] = max(0, min(1, (float) ($parsed['confidence'] ?? 0)));
         $parsed['warnings'] = $warnings->unique()->values()->all();
 
         return $parsed;
