@@ -11,18 +11,19 @@ uses(RefreshDatabase::class);
 function fakeIntakeResponse(array $payload): array
 {
     return [
-        'output' => [[
-            'type' => 'message',
-            'content' => [[
-                'type' => 'output_text',
-                'text' => json_encode($payload),
-            ]],
+        'id' => 'msg_test',
+        'type' => 'message',
+        'role' => 'assistant',
+        'content' => [[
+            'type' => 'text',
+            'text' => json_encode($payload),
         ]],
+        'stop_reason' => 'end_turn',
     ];
 }
 
 test('authenticated user can parse a work order request into a tenant scoped draft', function () {
-    config()->set('services.openai.key', 'test-key');
+    config()->set('services.anthropic.key', 'test-key');
 
     $organization = Organization::factory()->create();
     $client = Client::factory()->for($organization)->create(['name' => 'Northstar']);
@@ -30,7 +31,7 @@ test('authenticated user can parse a work order request into a tenant scoped dra
     $user = User::factory()->for($organization)->create();
 
     Http::fake([
-        'api.openai.com/*' => Http::response(fakeIntakeResponse([
+        'api.anthropic.com/*' => Http::response(fakeIntakeResponse([
             'client_id' => $client->id,
             'client_name' => 'Northstar',
             'assignee_id' => $assignee->id,
@@ -57,17 +58,19 @@ test('authenticated user can parse a work order request into a tenant scoped dra
 
     Http::assertSent(function ($request) use ($client, $assignee) {
         $body = $request->data();
-        $systemPrompt = data_get($body, 'input.0.content.0.text', '');
+        $systemPrompt = data_get($body, 'system', '');
 
-        return $request->url() === 'https://api.openai.com/v1/responses'
+        return $request->url() === 'https://api.anthropic.com/v1/messages'
+            && $request->hasHeader('x-api-key', 'test-key')
+            && $request->hasHeader('anthropic-version', '2023-06-01')
             && str_contains($systemPrompt, (string) $client->id)
             && str_contains($systemPrompt, (string) $assignee->id)
-            && data_get($body, 'text.format.type') === 'json_schema';
+            && data_get($body, 'output_config.format.type') === 'json_schema';
     });
 });
 
 test('AI cannot inject client or assignee IDs from another tenant', function () {
-    config()->set('services.openai.key', 'test-key');
+    config()->set('services.anthropic.key', 'test-key');
 
     $organization = Organization::factory()->create();
     $user = User::factory()->for($organization)->create();
@@ -76,7 +79,7 @@ test('AI cannot inject client or assignee IDs from another tenant', function () 
     $otherUser = User::factory()->for($otherOrganization)->create();
 
     Http::fake([
-        'api.openai.com/*' => Http::response(fakeIntakeResponse([
+        'api.anthropic.com/*' => Http::response(fakeIntakeResponse([
             'client_id' => $otherClient->id,
             'client_name' => $otherClient->name,
             'assignee_id' => $otherUser->id,
@@ -105,12 +108,12 @@ test('AI intake requires authentication', function () {
 });
 
 test('AI provider failures return a controlled gateway error', function () {
-    config()->set('services.openai.key', 'test-key');
+    config()->set('services.anthropic.key', 'test-key');
 
     $organization = Organization::factory()->create();
     $user = User::factory()->for($organization)->create();
 
-    Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'temporary']], 500)]);
+    Http::fake(['api.anthropic.com/*' => Http::response(['error' => ['message' => 'temporary']], 500)]);
 
     $this->actingAs($user)
         ->postJson('/api/work-order-intake/parse', ['text' => 'Create a work order for the broken front desk display.'])
