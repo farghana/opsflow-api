@@ -1,59 +1,163 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# OpsFlow API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend API for **OpsFlow**, an AI-assisted operations workspace for turning unstructured requests into trackable work.
 
-## About Laravel
+OpsFlow is a portfolio-scale full-stack application built around a realistic operational workflow: organizations manage clients, create and assign work orders, track status and activity, monitor operational metrics, and use AI to turn messy free-text requests into structured work-order drafts.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+> This repository contains the Laravel API. The Vue frontend lives in `farghana/opsflow-web`.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Why this project exists
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Operational requests often arrive as emails, calls, chat messages, or loosely written notes. Important details such as the client, urgency, due date, and assignee then have to be copied into a tracking system manually.
 
-## Learning Laravel
+OpsFlow demonstrates a safer AI-assisted workflow: AI extracts a **draft**, tenant-owned entities are resolved server-side, a human reviews or corrects the result, and the normal validated Work Order API performs the final write.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Highlights
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Multi-tenant organization architecture with explicit tenant isolation
+- Laravel Sanctum SPA authentication
+- Client management with search, sorting, pagination, and validation
+- Work Orders linked to clients and optional team-member assignees
+- Workflow statuses, priorities, due dates, overdue detection, and activity history
+- Tenant-scoped operational dashboard metrics
+- Anthropic Claude integration for structured AI-assisted intake
+- Human-in-the-loop review: AI never creates work orders directly
+- PostgreSQL relational data model
+- Pest feature tests covering authentication, tenancy, CRUD, dashboard, and AI provider behavior
 
-## Laravel Sponsors
+## Architecture
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```text
+Vue 3 SPA
+   |
+   | Sanctum session + JSON API
+   v
+Laravel 12 API
+   |-------------------------------|
+   |                               |
+PostgreSQL                   Anthropic Messages API
+   |                               |
+Organizations                    structured draft
+Clients                            |
+Users/Assignees                    v
+Work Orders <-------------- tenant-safe resolution
+Activity History                   |
+                                   v
+                           human review in Vue
+                                   |
+                                   v
+                         validated Work Order API
+```
 
-### Premium Partners
+The AI provider is kept behind a backend service. API credentials never reach the browser, and the provider cannot bypass Laravel validation or tenant boundaries.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Core domain
 
-## Contributing
+### Organizations
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Users belong to an organization. Clients, team members, work orders, dashboard metrics, and AI entity resolution are scoped to the authenticated organization.
 
-## Code of Conduct
+### Clients
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Clients support authenticated CRUD, validation, server-side search, sorting, and pagination.
 
-## Security Vulnerabilities
+### Work Orders
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+A work order belongs to an organization and client and may be assigned to a team member. It includes:
 
-## License
+- generated order number
+- title and description
+- priority: `low`, `normal`, `high`, `urgent`
+- status: `draft`, `queued`, `in_progress`, `blocked`, `completed`, `cancelled`
+- due date and overdue state
+- completion timestamp
+- activity history for meaningful changes
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### AI-assisted intake
+
+`POST /api/work-order-intake/parse` accepts an unstructured operational request. Claude returns a schema-constrained draft containing fields such as client, assignee, title, priority, status, due date, confidence, and warnings.
+
+Client and assignee IDs are checked against the authenticated organization. Ambiguous or invalid matches are cleared rather than trusted. The response is only a draft; the frontend requires review before calling the regular Work Order endpoint.
+
+## Selected API endpoints
+
+```text
+GET    /api/user
+GET    /api/dashboard/summary
+
+GET    /api/clients
+POST   /api/clients
+GET    /api/clients/{client}
+PUT    /api/clients/{client}
+DELETE /api/clients/{client}
+
+GET    /api/work-orders
+POST   /api/work-orders
+GET    /api/work-orders/{workOrder}
+PUT    /api/work-orders/{workOrder}
+DELETE /api/work-orders/{workOrder}
+
+GET    /api/team-members
+POST   /api/work-order-intake/parse
+```
+
+## Tech stack
+
+| Area | Technology |
+| --- | --- |
+| Framework | Laravel 12 / PHP 8.2+ |
+| Database | PostgreSQL |
+| Authentication | Laravel Sanctum |
+| AI | Anthropic Claude Messages API + Structured Outputs |
+| Testing | Pest |
+| API style | REST / JSON |
+
+## Local setup
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+```
+
+Configure PostgreSQL and the frontend origin in `.env`, then run:
+
+```bash
+php artisan migrate
+php artisan serve --host=localhost --port=8000
+```
+
+For AI intake, add your own Anthropic API credentials locally:
+
+```env
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-4-6
+```
+
+Never commit API keys.
+
+## Tests
+
+```bash
+php artisan test
+```
+
+AI feature tests fake the external provider response, so the automated suite does not require or spend Anthropic API credits.
+
+## Security and reliability decisions
+
+- SPA authentication uses secure server-side sessions through Sanctum.
+- Tenant-owned resources are queried through the authenticated organization.
+- AI-proposed client and assignee IDs are revalidated server-side.
+- Provider failures are handled without exposing credentials to the frontend.
+- AI output is treated as untrusted draft data and still passes through application validation before persistence.
+
+## Frontend
+
+The companion Vue application provides the operational dashboard, Clients and Work Orders interfaces, filtering and sorting, activity timeline, and AI Intake review experience.
+
+Repository: `farghana/opsflow-web`
+
+## Status
+
+OpsFlow is actively developed as a production-style portfolio project. The current focus is presentation, demo data, deployment, and documentation rather than adding more CRUD surface area.
